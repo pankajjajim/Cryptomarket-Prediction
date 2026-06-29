@@ -483,7 +483,101 @@ Rather than generic recommendations for everyone, we used user purchase history 
 
 This makes the project feel more intelligent and useful.
 
-## 12. What We Learned from This Project
+## 12. Database Schema, API Endpoints, ML Pipeline, and Explainable AI
+
+### Database schema
+
+The application uses MongoDB with two main collections:
+
+- Users
+  - username
+  - email
+  - password (hashed)
+  - createdAt
+- Transactions
+  - buyer (reference to the user)
+  - cryptoType
+  - amount
+  - price
+  - totalValue
+  - timestamp
+
+This schema supports both authentication and personalized recommendations based on user buying behavior.
+
+### API endpoints
+
+Public endpoints:
+- GET /api/cryptos — returns live market data with AI enrichment
+- GET /api/ai/health — checks the Python ML runtime
+- GET /api/ai/predictable-coins — returns supported ML coin symbols
+- GET /api/ai/price-prediction — runs the ML prediction pipeline
+- GET /api/ai/market-insights — returns market summary, gainers, and risk watchlist
+
+Protected endpoints:
+- POST /api/register
+- POST /api/login
+- GET /api/verify
+- POST /api/buy
+- GET /api/recommendations
+- GET /api/purchases
+- GET /api/ai/portfolio/optimize
+
+### ML pipeline
+
+The Python ML pipeline is triggered through the Node backend and follows this flow:
+
+1. Fetch historical market data from CoinGecko.
+2. Build a tabular dataset with prices, volume, moving averages, returns, and volatility features.
+3. Train multiple models on demand: Random Forest, XGBoost, LSTM, and Prophet.
+4. Aggregate model predictions into an ensemble signal.
+5. Produce risk scoring, recommendation summaries, and explainable AI metadata.
+6. Return the final forecast payload to the MERN application.
+
+### Feature engineering
+
+The feature set includes:
+- price
+- volume
+- moving averages (7-day and 14-day)
+- lagged prices
+- daily return features
+- rolling volatility
+- volume change
+
+These features help the model capture short-term momentum, trend behavior, and volatility regimes.
+
+### Model training and evaluation
+
+Training is performed on the fly using historical price windows. The system reports the following metrics for the ML workflow:
+- MAE (Mean Absolute Error)
+- RMSE (Root Mean Squared Error)
+- MAPE (Mean Absolute Percentage Error)
+- Accuracy
+- Precision
+- Recall
+- F1 Score
+
+These values are included in the prediction response so the frontend can display model quality alongside the forecast.
+
+### Deployment strategy
+
+Recommended deployment structure:
+- React frontend: Vercel or Netlify
+- Node/Express backend: Render, Railway, or Heroku
+- Python ML runtime: Render or Railway with the Python dependencies installed from ml/requirements.txt
+- MongoDB: MongoDB Atlas
+
+The app is designed so the MERN frontend talks to the Express API, and the Express API bridges to the Python ML engine for prediction tasks.
+
+### Explainable AI
+
+The ML output is designed to be understandable rather than a black box:
+- the response includes a natural-language explanation
+- feature importance is surfaced for the most influential inputs
+- the risk score and signal rationale are returned alongside the forecast
+- the ensemble uses multiple models so users can see both the prediction and the reason behind it
+
+## 13. What We Learned from This Project
 
 By building this project, you learn:
 - how frontend and backend connect

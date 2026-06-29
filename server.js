@@ -5,9 +5,22 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 const User = require("./models/User");
 const Transaction = require("./models/Transaction");
+const {
+  getPricePrediction,
+  listPredictableCoins,
+} = require("./services/mlPrediction");
+const {
+  buildCurrentWeightsFromHoldings,
+  listPortfolioUniverse,
+  optimizePortfolio,
+} = require("./services/portfolioOptimization");
+const { buildPersonalizedRecommendations } = require("./services/recommendationEngine");
+const { analyzeTechnicalIndicators } = require("./services/technicalAnalysis");
+const { analyzeSentiment } = require("./services/sentimentAnalysis");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -196,9 +209,138 @@ app.get("/api/cryptos", async (req, res) => {
   }
 });
 
+app.get("/api/ai/health", (req, res) => {
+  const pythonBin = process.env.PYTHON_BIN || "python";
+  const result = spawnSync(pythonBin, ["--version"], {
+    encoding: "utf8",
+    windowsHide: true,
+  });
+
+  const output = [result.stdout, result.stderr].filter(Boolean).join(" ").trim();
+  const ok = !result.error && result.status === 0;
+
+  res.json({
+    ok,
+    python: pythonBin,
+    message: output || (ok ? "Python runtime is available." : "Python runtime is not reachable."),
+    version: output || null,
+  });
+});
+
+app.get("/api/ai/predictable-coins", (req, res) => {
+  res.json({ coins: listPredictableCoins() });
+});
+
+app.get("/api/ai/price-prediction", async (req, res) => {
+  try {
+    const symbol = req.query.symbol;
+    const name = req.query.name;
+    const days = Number.parseInt(req.query.days, 10) || 90;
+    const force = req.query.force === "true";
+
+    if (!symbol && !name) {
+      return res.status(400).json({
+        error: "Query parameter 'symbol' or 'name' is required.",
+      });
+    }
+
+    const prediction = await getPricePrediction({
+      symbol,
+      name,
+      days,
+      force,
+    });
+    res.json(prediction);
+  } catch (error) {
+    res.status(502).json({ error: error.message });
+  }
+});
+
+app.get("/api/ai/portfolio/universe", (req, res) => {
+  res.json({ assets: listPortfolioUniverse() });
+});
+
+function optionalAuthenticate(req, res, next) {
+  const token = req.header("Authorization")?.replace("Bearer ", "");
+  if (!token) {
+    next();
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.userId;
+  } catch {
+    // Ignore invalid tokens for optional personalization.
+  }
+  next();
+}
+
+app.get("/api/ai/portfolio/optimize", optionalAuthenticate, async (req, res) => {
+  try {
+    const symbols = req.query.symbols;
+    const days = Number.parseInt(req.query.days, 10) || 90;
+    const budget = Number.parseFloat(req.query.budget) || 10000;
+    const riskFreeRate = Number.parseFloat(req.query.riskFreeRate) || 0.04;
+    const force = req.query.force === "true";
+    const includeHoldings = req.query.includeHoldings === "true";
+
+    let currentWeights = null;
+    if (includeHoldings && req.userId && isMongoReady) {
+      const [transactions, cryptos] = await Promise.all([
+        Transaction.find({ buyer: req.userId }).sort({ timestamp: -1 }).limit(50),
+        fetchCryptoData(),
+      ]);
+
+      const priceMap = new Map(
+        cryptos.map((coin) => [
+          normalizeHoldingKey(coin.symbol),
+          Number.parseFloat(coin.price_usd) || 0,
+        ]),
+      );
+
+      const summaryMap = new Map();
+      for (const purchase of transactions) {
+        const key = normalizeHoldingKey(purchase.cryptoType);
+        const current = summaryMap.get(key) || {
+          cryptoType: purchase.cryptoType,
+          totalAmount: 0,
+          totalSpent: 0,
+        };
+        current.totalAmount += purchase.amount;
+        current.totalSpent += purchase.totalValue;
+        summaryMap.set(key, current);
+      }
+
+      currentWeights = buildCurrentWeightsFromHoldings(
+        [...summaryMap.values()],
+        priceMap,
+      );
+    }
+
+    const result = await optimizePortfolio({
+      symbols,
+      days,
+      budget,
+      riskFreeRate,
+      currentWeights,
+      force,
+    });
+
+    res.json({
+      ...result,
+      personalized: Boolean(currentWeights),
+    });
+  } catch (error) {
+    res.status(502).json({ error: error.message });
+  }
+});
+
 app.get("/api/ai/market-insights", async (req, res) => {
   try {
     const cryptos = await fetchCryptoData();
+    const technicalAnalysis = analyzeTechnicalIndicators(cryptos.slice(0, 10));
+    const sentiment = analyzeSentiment(cryptos.slice(0, 10));
     const predictedGainers = [...cryptos]
       .filter((coin) => coin.ai.trendPrediction.label === "Up")
       .sort(
@@ -238,6 +380,8 @@ app.get("/api/ai/market-insights", async (req, res) => {
       predictedGainers,
       highRiskCoins,
       lowRiskCoins,
+      technicalAnalysis,
+      sentiment,
     });
   } catch (error) {
     res.status(502).json({ error: error.message });
@@ -296,44 +440,12 @@ app.get("/api/recommendations", requireDatabase, authenticate, async (req, res) 
       fetchCryptoData(),
     ]);
 
-    const ownedKeys = new Set(
-      transactions.map((transaction) =>
-        normalizeHoldingKey(transaction.cryptoType),
-      ),
-    );
-
-    const recommendations = cryptos
-      .filter((coin) => {
-        const symbolKey = normalizeHoldingKey(coin.symbol);
-        const nameKey = normalizeHoldingKey(coin.name);
-        return !ownedKeys.has(symbolKey) && !ownedKeys.has(nameKey);
-      })
-      .filter((coin) => coin.ai.trendPrediction.label !== "Down")
-      .filter((coin) => coin.ai.risk.label !== "High")
-      .sort((a, b) => {
-        const trendGap =
-          b.ai.trendPrediction.confidence - a.ai.trendPrediction.confidence;
-        if (trendGap !== 0) return trendGap;
-        return (Number.parseInt(a.rank, 10) || 9999) - (Number.parseInt(b.rank, 10) || 9999);
-      })
-      .slice(0, 5)
-      .map((coin) => ({
-        id: coin.id,
-        name: coin.name,
-        symbol: coin.symbol,
-        price_usd: coin.price_usd,
-        percent_change_24h: coin.percent_change_24h,
-        ai: coin.ai,
-        reason: ownedKeys.size
-          ? `${coin.symbol} has a ${coin.ai.trendPrediction.label.toLowerCase()} trend signal with ${coin.ai.risk.label.toLowerCase()} risk and is not already in your portfolio.`
-          : `${coin.symbol} has a ${coin.ai.trendPrediction.label.toLowerCase()} trend signal with ${coin.ai.risk.label.toLowerCase()} risk, making it a good starter watchlist coin.`,
-      }));
-
-    res.json({
-      portfolioSize: ownedKeys.size,
-      ownedSymbols: [...ownedKeys],
-      recommendations,
+    const result = buildPersonalizedRecommendations({
+      transactions,
+      cryptos,
     });
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -372,17 +484,22 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.listen(PORT, () => {
-  console.log(`Cryptomarket server running on port ${PORT}`);
-  console.log(`Backend API: http://localhost:${PORT}`);
-});
+let server;
 
-// Add error handling for port conflicts
-process.on("uncaughtException", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(
-      `Port ${PORT} is already in use. Please close the process or use a different port.`,
-    );
-  }
-  process.exit(1);
-});
+if (require.main === module) {
+  server = app.listen(PORT, () => {
+    console.log(`Cryptomarket server running on port ${PORT}`);
+    console.log(`Backend API: http://localhost:${PORT}`);
+  });
+
+  process.on("uncaughtException", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(
+        `Port ${PORT} is already in use. Please close the process or use a different port.`,
+      );
+    }
+    process.exit(1);
+  });
+}
+
+module.exports = { app, server };

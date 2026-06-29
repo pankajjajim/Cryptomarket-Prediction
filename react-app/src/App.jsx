@@ -3,6 +3,9 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import Navbar from "./components/Navbar.jsx";
 import AiDashboardPage from "./pages/AiDashboardPage.jsx";
+import PricePredictionPage from "./pages/PricePredictionPage.jsx";
+import PortfolioOptimizationPage from "./pages/PortfolioOptimizationPage.jsx";
+import RecommendationsPage from "./pages/RecommendationsPage.jsx";
 import CryptoListPage from "./pages/CryptoListPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
@@ -28,6 +31,9 @@ export default function App() {
             element={<CryptoListPage variant="gainers" />}
           />
           <Route path="/ai-dashboard" element={<AiDashboardPage />} />
+          <Route path="/price-prediction" element={<PricePredictionPage />} />
+          <Route path="/portfolio-optimization" element={<PortfolioOptimizationPage />} />
+          <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

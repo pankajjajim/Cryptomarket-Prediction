@@ -45,6 +45,15 @@ export default function Navbar() {
             <NavLink to="/ai-dashboard" className={linkClass}>
               AI Dashboard
             </NavLink>
+            <NavLink to="/price-prediction" className={linkClass}>
+              ML Prediction
+            </NavLink>
+            <NavLink to="/portfolio-optimization" className={linkClass}>
+              MPT Portfolio
+            </NavLink>
+            <NavLink to="/recommendations" className={linkClass}>
+              Recommendations
+            </NavLink>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
