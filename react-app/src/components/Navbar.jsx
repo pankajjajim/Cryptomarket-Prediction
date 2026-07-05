@@ -54,6 +54,12 @@ export default function Navbar() {
             <NavLink to="/recommendations" className={linkClass}>
               Recommendations
             </NavLink>
+            <NavLink to="/technical-analysis" className={linkClass}>
+              TA
+            </NavLink>
+            <NavLink to="/whale-activity" className={linkClass}>
+              Whale Activity
+            </NavLink>
           </div>
 
           <div className="hidden md:flex items-center gap-3">

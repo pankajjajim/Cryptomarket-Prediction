@@ -6,6 +6,8 @@ import {
   getChangeColor,
 } from "../utils/coinFormatting.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import AnalyticsDashboard from "../components/AnalyticsDashboard.jsx";
+import LoadingSkeleton from "../components/LoadingSkeleton.jsx";
 
 const CRYPTO_API_URL = "/api/cryptos";
 
@@ -194,6 +196,10 @@ export default function CryptoListPage({ variant }) {
     setTimeframe("24h");
   };
 
+  const closeDashboard = () => {
+    setSelectedCoin(null);
+  };
+
   const chartHtml = useMemo(() => {
     if (!selectedCoin) return "";
     if (typeof window.renderMarketChart !== "function") return "";
@@ -340,10 +346,22 @@ export default function CryptoListPage({ variant }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto mt-8 px-4">
-      <div className="bg-gray-900 shadow-md rounded-lg overflow-x-auto border border-gray-800">
+    <div className="mx-auto mt-8 max-w-7xl px-4 pb-10">
+      <div className="mb-6 rounded-3xl border border-cyan-400/20 bg-slate-900/80 p-4 shadow-[0_0_50px_rgba(8,15,30,0.35)] backdrop-blur-xl">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-sm uppercase tracking-[0.3em] text-cyan-300">Market intelligence</div>
+            <h1 className="text-2xl font-semibold text-white">Professional crypto analytics workspace</h1>
+          </div>
+          <div className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-slate-300">
+            Click any asset to launch the full-screen terminal-inspired dashboard
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-3xl border border-white/10 bg-slate-900/80 shadow-[0_0_50px_rgba(2,6,23,0.4)] backdrop-blur-xl">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-800 text-gray-200 uppercase text-xs">
+          <thead className="bg-slate-950/70 text-gray-200 uppercase text-xs">
             <tr>
               <th className="px-6 py-4">#</th>
               <th className="px-6 py-4">Name</th>
@@ -362,7 +380,7 @@ export default function CryptoListPage({ variant }) {
           </thead>
 
           <tbody
-            className="bg-gray-900 divide-y divide-gray-800"
+            className="divide-y divide-white/10 bg-slate-900/50"
             id="cryptoTableBody"
           >
             {loading ? (
@@ -371,7 +389,7 @@ export default function CryptoListPage({ variant }) {
                   colSpan="13"
                   className="px-6 py-4 text-center text-gray-500"
                 >
-                  Loading cryptocurrency data...
+                  <LoadingSkeleton />
                 </td>
               </tr>
             ) : error ? (
@@ -407,7 +425,7 @@ export default function CryptoListPage({ variant }) {
                 return (
                   <tr
                     key={crypto.id}
-                    className="hover:bg-gray-800 transition-colors cursor-pointer"
+                    className="cursor-pointer transition-colors hover:bg-cyan-500/10"
                     onClick={() => openModal(crypto)}
                     role="button"
                     tabIndex={0}
@@ -487,7 +505,7 @@ export default function CryptoListPage({ variant }) {
                     <td className="px-6 py-4">
                       <button
                         type="button"
-                        className="buy-btn px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
+                        className="buy-btn rounded-md bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400"
                         onClick={(e) => onBuyClick(e, crypto)}
                       >
                         Buy
@@ -501,139 +519,8 @@ export default function CryptoListPage({ variant }) {
         </table>
       </div>
 
-      {/* Coin Modal */}
       {selectedCoin && modalStats && (
-        <div
-          id="coinModal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          aria-hidden="false"
-          onClick={() => setSelectedCoin(null)}
-        >
-          <div
-            className="bg-gray-900 text-gray-100 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-800"
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={() => {
-              // Prevent accidental overlay click dragging.
-            }}
-          >
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between z-10 rounded-t-xl">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-lg font-bold text-gray-200">
-                  {modalStats.iconText}
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-100">
-                    {modalStats.name} {modalStats.symbol}
-                  </h2>
-                  <p className="text-sm text-gray-400">#{modalStats.rank}</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                id="closeModal"
-                className="p-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-                aria-label="Close"
-                onClick={() => setSelectedCoin(null)}
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6" onClick={onModalContentClick}>
-              <div className="space-y-6">
-                <div>
-                  <p className="text-3xl font-bold text-gray-100">
-                    {formatPrice(modalStats.price)}
-                  </p>
-                  <p
-                    className={`mt-1 text-sm ${getChangeColor(modalStats.change24h)}`}
-                  >
-                    {modalStats.change24h > 0 ? "+" : ""}
-                    {modalStats.change24h.toFixed(2)}% (24h)
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">
-                      Market cap
-                    </p>
-                    <p className="font-semibold text-gray-100 mt-0.5">
-                      {formatNumber(modalStats.marketCap)}
-                    </p>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">
-                      Volume (24h)
-                    </p>
-                    <p className="font-semibold text-gray-100 mt-0.5">
-                      {formatNumber(modalStats.volume)}
-                    </p>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">
-                      Vol/Mkt Cap (24h)
-                    </p>
-                    <p className="font-semibold text-gray-100 mt-0.5">
-                      {modalStats.volMktCap}%
-                    </p>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">
-                      Circulating supply
-                    </p>
-                    <p className="font-semibold text-gray-100 mt-0.5">
-                      {modalStats.supply
-                        ? modalStats.supply.toLocaleString() +
-                          " " +
-                          modalStats.symbol
-                        : "—"}
-                    </p>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">
-                      1h
-                    </p>
-                    <p
-                      className={`font-semibold mt-0.5 ${getChangeColor(modalStats.change1h)}`}
-                    >
-                      {modalStats.change1h > 0 ? "+" : ""}
-                      {modalStats.change1h.toFixed(2)}%
-                    </p>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">
-                      7d
-                    </p>
-                    <p
-                      className={`font-semibold mt-0.5 ${getChangeColor(modalStats.change7d)}`}
-                    >
-                      {modalStats.change7d > 0 ? "+" : ""}
-                      {modalStats.change7d.toFixed(2)}%
-                    </p>
-                  </div>
-                </div>
-
-                <div id="detailChartWrap">
-                  <div dangerouslySetInnerHTML={{ __html: chartHtml }} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <AnalyticsDashboard coin={selectedCoin} onClose={closeDashboard} />
       )}
 
       {/* Payment Modal */}

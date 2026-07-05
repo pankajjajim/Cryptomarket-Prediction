@@ -47,4 +47,8 @@ test("buildPersonalizedRecommendations favors low-risk growth picks for conserva
   assert.equal(result.recommendations[0].symbol, "SOL");
   assert.equal(result.recommendations[0].reason.includes("conservative"), true);
   assert.equal(result.recommendations[0].riskLabel, "Medium");
+  assert.equal(typeof result.recommendations[0].buyProbability, "number");
+  assert.equal(typeof result.recommendations[0].predictionExplanation, "string");
+  assert.equal(Array.isArray(result.recommendations[0].featureImportance), true);
+  assert.equal(Array.isArray(result.recommendations[0].recommendationHistory), true);
 });

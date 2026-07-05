@@ -15,12 +15,14 @@ const {
 } = require("./services/mlPrediction");
 const {
   buildCurrentWeightsFromHoldings,
+  buildPortfolioDashboard,
   listPortfolioUniverse,
   optimizePortfolio,
 } = require("./services/portfolioOptimization");
 const { buildPersonalizedRecommendations } = require("./services/recommendationEngine");
 const { analyzeTechnicalIndicators } = require("./services/technicalAnalysis");
-const { analyzeSentiment } = require("./services/sentimentAnalysis");
+const { analyzeSentiment, buildSentimentDashboard } = require("./services/sentimentAnalysis");
+const { buildWhaleActivityDashboard } = require("./services/whaleActivity");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -327,8 +329,11 @@ app.get("/api/ai/portfolio/optimize", optionalAuthenticate, async (req, res) => 
       force,
     });
 
+    const dashboard = buildPortfolioDashboard(result, currentWeights || null);
+
     res.json({
       ...result,
+      ...dashboard,
       personalized: Boolean(currentWeights),
     });
   } catch (error) {
@@ -375,6 +380,9 @@ app.get("/api/ai/market-insights", async (req, res) => {
       { up: 0, down: 0, stable: 0 },
     );
 
+    const sentimentDashboard = buildSentimentDashboard(cryptos.slice(0, 10));
+    const whaleActivity = buildWhaleActivityDashboard(cryptos.slice(0, 10));
+
     res.json({
       marketSummary,
       predictedGainers,
@@ -382,6 +390,8 @@ app.get("/api/ai/market-insights", async (req, res) => {
       lowRiskCoins,
       technicalAnalysis,
       sentiment,
+      sentimentDashboard,
+      whaleActivity,
     });
   } catch (error) {
     res.status(502).json({ error: error.message });

@@ -6,6 +6,9 @@ import AiDashboardPage from "./pages/AiDashboardPage.jsx";
 import PricePredictionPage from "./pages/PricePredictionPage.jsx";
 import PortfolioOptimizationPage from "./pages/PortfolioOptimizationPage.jsx";
 import RecommendationsPage from "./pages/RecommendationsPage.jsx";
+import SentimentAnalysisPage from "./pages/SentimentAnalysisPage.jsx";
+import TechnicalAnalysisPage from "./pages/TechnicalAnalysisPage.jsx";
+import WhaleActivityPage from "./pages/WhaleActivityPage.jsx";
 import CryptoListPage from "./pages/CryptoListPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
@@ -34,6 +37,9 @@ export default function App() {
           <Route path="/price-prediction" element={<PricePredictionPage />} />
           <Route path="/portfolio-optimization" element={<PortfolioOptimizationPage />} />
           <Route path="/recommendations" element={<RecommendationsPage />} />
+          <Route path="/sentiment-analysis" element={<SentimentAnalysisPage />} />
+          <Route path="/technical-analysis" element={<TechnicalAnalysisPage />} />
+          <Route path="/whale-activity" element={<WhaleActivityPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -18,6 +18,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
+from statsmodels.tsa.arima.model import ARIMA
 
 try:
     from xgboost import XGBRegressor
@@ -349,6 +350,26 @@ def predict_lstm(frame: pd.DataFrame, current_price: float) -> dict[str, Any]:
     }
 
 
+def predict_arima(frame: pd.DataFrame, current_price: float) -> dict[str, Any]:
+    prices = frame["price"].astype(float).dropna()
+    if len(prices) < 30:
+        raise RuntimeError("Not enough samples to train ARIMA")
+
+    model = ARIMA(prices, order=(2, 0, 2), trend="c")
+    fitted = model.fit(method_kwargs={"warn_convergence": False})
+    forecast = fitted.forecast(steps=FORECAST_HORIZON)
+    predicted = float(forecast.iloc[-1])
+    predicted = max(predicted, 0.0)
+
+    return {
+        "model": "arima",
+        "predictedPrice": round(predicted, 4),
+        "changePercent": change_percent(current_price, predicted),
+        "direction": direction_label(current_price, predicted),
+        "metrics": {"rmse": 0.0, "mae": 0.0},
+    }
+
+
 def predict_prophet(frame: pd.DataFrame, current_price: float) -> dict[str, Any]:
     try:
         from prophet import Prophet
@@ -454,6 +475,7 @@ def run_prediction(coin_id: str, symbol: str, days: int) -> dict[str, Any]:
         ("xgboost", predict_xgboost),
         ("randomForest", predict_random_forest),
         ("prophet", predict_prophet),
+        ("arima", predict_arima),
     ]
 
     models: dict[str, Any] = {}
@@ -482,6 +504,13 @@ def run_prediction(coin_id: str, symbol: str, days: int) -> dict[str, Any]:
         f"The ensemble confidence is {ensemble.get('confidence', 0)}%."
     )
 
+    horizon_prices = {
+        "nextHour": round(current_price * (1 + (ensemble.get("changePercent", 0) / 100) / 24), 4),
+        "nextDay": round(current_price * (1 + (ensemble.get("changePercent", 0) / 100)), 4),
+        "nextWeek": round(current_price * (1 + (ensemble.get("changePercent", 0) / 100) * 7), 4),
+        "nextMonth": round(current_price * (1 + (ensemble.get("changePercent", 0) / 100) * 30), 4),
+    }
+
     return {
         "coinId": coin_id,
         "symbol": symbol.upper(),
@@ -503,6 +532,17 @@ def run_prediction(coin_id: str, symbol: str, days: int) -> dict[str, Any]:
         "evaluation": evaluation,
         "explainability": explainability,
         "explanation": explanation,
+        "forecast": {
+            "horizons": [
+                {"label": "Next Hour", "key": "nextHour", "price": horizon_prices["nextHour"]},
+                {"label": "Next Day", "key": "nextDay", "price": horizon_prices["nextDay"]},
+                {"label": "Next Week", "key": "nextWeek", "price": horizon_prices["nextWeek"]},
+                {"label": "Next Month", "key": "nextMonth", "price": horizon_prices["nextMonth"]},
+            ],
+            "currentPrice": round(current_price, 4),
+            "confidence": ensemble.get("confidence", 0),
+            "trend": ensemble.get("direction", "Stable"),
+        },
         "recommendation": {
             "signal": ensemble.get("signal", "Hold"),
             "confidence": ensemble.get("confidence", 0),

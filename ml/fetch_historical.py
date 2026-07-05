@@ -56,6 +56,8 @@ def fetch_market_chart(coin_id: str, days: int = 90) -> pd.DataFrame:
     frame = frame.reset_index(drop=True)
 
     frame["return_1d"] = frame["price"].pct_change()
+    frame["return_3d"] = frame["price"].pct_change(3)
+    frame["return_7d"] = frame["price"].pct_change(7)
     frame["ma_7"] = frame["price"].rolling(7, min_periods=1).mean()
     frame["ma_14"] = frame["price"].rolling(14, min_periods=1).mean()
     frame["volatility_7"] = frame["return_1d"].rolling(7, min_periods=1).std().fillna(0.0)

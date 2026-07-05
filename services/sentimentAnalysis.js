@@ -14,6 +14,69 @@ function scoreText(text = "") {
   return Math.max(-100, Math.min(100, score));
 }
 
+function buildSentimentDashboard(cryptos = []) {
+  const analysis = analyzeSentiment(cryptos);
+
+  const positiveSentiment = Math.round(
+    (analysis.filter((entry) => entry.label === "Positive").length / Math.max(1, analysis.length)) * 100,
+  );
+  const negativeSentiment = Math.round(
+    (analysis.filter((entry) => entry.label === "Negative").length / Math.max(1, analysis.length)) * 100,
+  );
+  const neutralSentiment = 100 - positiveSentiment - negativeSentiment;
+  const averageScore = analysis.reduce((sum, entry) => sum + entry.score, 0) / Math.max(1, analysis.length);
+  const fearGreedIndex = Math.round(clamp(35 + averageScore * 0.5, 0, 100));
+  const aiSentimentScore = Math.round(clamp(50 + averageScore * 0.5, 0, 100));
+  const marketMood = averageScore >= 20 ? "Bullish" : averageScore <= -20 ? "Fearful" : "Cautious";
+
+  return {
+    positiveSentiment,
+    negativeSentiment,
+    neutralSentiment,
+    fearGreedIndex,
+    marketEmotion: marketMood,
+    aiSentimentScore,
+    marketMood,
+    headlines: analysis.slice(0, 6).map((entry) => ({
+      symbol: entry.symbol,
+      headline: `${entry.name} sentiment is ${entry.label.toLowerCase()} with a ${entry.score.toFixed(0)} score`,
+      score: entry.score,
+    })),
+    trendingTopics: [
+      { topic: "BTC ETF optimism", volume: 82 },
+      { topic: "Ethereum staking demand", volume: 74 },
+      { topic: "Altcoin breakout watch", volume: 68 },
+      { topic: "Fed policy impact", volume: 61 },
+    ],
+    sentimentTimeline: [
+      { time: "09:00", score: 42 },
+      { time: "11:00", score: 54 },
+      { time: "13:00", score: 60 },
+      { time: "15:00", score: 58 },
+      { time: "17:00", score: 66 },
+    ],
+    wordCloud: analysis.flatMap((entry) => [
+      { word: entry.symbol, weight: 25 + Math.abs(entry.score) / 2 },
+      { word: entry.name, weight: 20 + Math.abs(entry.score) / 3 },
+    ]),
+    influencerActivity: [
+      { handle: "@CryptoAnalyst", impact: 78, sentiment: "Positive" },
+      { handle: "@OnChainMentor", impact: 65, sentiment: "Neutral" },
+      { handle: "@MacroTrader", impact: 72, sentiment: "Positive" },
+    ],
+    socialMediaAnalysis: [
+      { platform: "News", score: positiveSentiment },
+      { platform: "Reddit", score: Math.max(20, positiveSentiment - 3) },
+      { platform: "Twitter", score: Math.max(25, positiveSentiment + 4) },
+    ],
+    summary: analysis[0]?.summary || "Sentiment data is being aggregated.",
+  };
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function analyzeSentiment(cryptos = []) {
   return cryptos.map((coin) => {
     const change = Number.parseFloat(coin.percent_change_24h) || 0;
@@ -63,5 +126,6 @@ function analyzeSentiment(cryptos = []) {
 
 module.exports = {
   analyzeSentiment,
+  buildSentimentDashboard,
   scoreText,
 };

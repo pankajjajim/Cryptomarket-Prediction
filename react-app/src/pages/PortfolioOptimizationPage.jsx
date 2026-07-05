@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { formatPrice } from "../utils/coinFormatting.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
@@ -18,8 +19,8 @@ function pct(value) {
 
 function MetricCard({ label, value, accent = "text-white" }) {
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-      <p className="text-sm text-gray-400">{label}</p>
+    <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/20">
+      <p className="text-sm text-slate-400">{label}</p>
       <p className={`mt-2 text-2xl font-bold ${accent}`}>{value}</p>
     </div>
   );
@@ -89,9 +90,9 @@ function AllocationTable({ portfolio }) {
   if (!portfolio?.allocations?.length) return null;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-800">
+    <div className="overflow-hidden rounded-2xl border border-slate-800">
       <table className="w-full text-left text-sm">
-        <thead className="bg-gray-800 text-gray-300">
+        <thead className="bg-slate-800 text-slate-300">
           <tr>
             <th className="px-4 py-3">Asset</th>
             <th className="px-4 py-3">Weight</th>
@@ -101,7 +102,7 @@ function AllocationTable({ portfolio }) {
         </thead>
         <tbody>
           {portfolio.allocations.map((row) => (
-            <tr key={row.symbol} className="border-t border-gray-800 text-gray-200">
+            <tr key={row.symbol} className="border-t border-slate-800 text-slate-200">
               <td className="px-4 py-3 font-medium">{row.symbol}</td>
               <td className="px-4 py-3">{row.weight}%</td>
               <td className="px-4 py-3">{formatPrice(row.allocationUsd)}</td>
@@ -237,7 +238,7 @@ export default function PortfolioOptimizationPage() {
         </NavLink>
       </div>
 
-      <section className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+      <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/40">
         <p className="mb-3 text-sm font-semibold text-gray-300">
           Select assets (2–8)
         </p>
@@ -251,8 +252,8 @@ export default function PortfolioOptimizationPage() {
                 onClick={() => toggleSymbol(asset.symbol)}
                 className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
                   activeSymbol
-                    ? "border-blue-600 bg-blue-950/50 text-blue-200"
-                    : "border-gray-700 text-gray-400 hover:border-gray-600"
+                    ? "border-cyan-600 bg-cyan-950/50 text-cyan-200"
+                    : "border-slate-700 text-slate-400 hover:border-slate-600"
                 }`}
               >
                 {asset.symbol}
@@ -339,20 +340,38 @@ export default function PortfolioOptimizationPage() {
         <>
           <section className="mt-8 grid gap-4 md:grid-cols-4">
             <MetricCard
-              label="Expected return (annual)"
-              value={pct(active.metrics.expectedReturn)}
+              label="Portfolio Value"
+              value={formatPrice(result.portfolioValue)}
+              accent="text-cyan-300"
+            />
+            <MetricCard
+              label="Current Investment"
+              value={formatPrice(result.currentInvestment)}
+              accent="text-emerald-300"
+            />
+            <MetricCard
+              label="Total Profit"
+              value={formatPrice(result.totalProfit)}
               accent="text-green-400"
             />
             <MetricCard
-              label="Volatility (annual)"
-              value={pct(active.metrics.volatility)}
-              accent="text-yellow-300"
+              label="Total Loss"
+              value={formatPrice(result.totalLoss)}
+              accent="text-rose-300"
             />
-            <MetricCard
-              label="Sharpe ratio"
-              value={active.metrics.sharpeRatio.toFixed(3)}
-              accent="text-blue-400"
-            />
+          </section>
+
+          <section className="mt-4 grid gap-4 md:grid-cols-4">
+            <MetricCard label="Diversification Score" value={`${result.diversificationScore}`.slice(0, 4)} accent="text-violet-300" />
+            <MetricCard label="Portfolio Risk" value={result.portfolioRisk.toFixed(2)} accent="text-amber-300" />
+            <MetricCard label="Expected Return" value={pct(result.expectedReturn)} accent="text-green-400" />
+            <MetricCard label="Sharpe / Sortino" value={`${result.sharpeRatio.toFixed(2)} / ${result.sortinoRatio.toFixed(2)}`} accent="text-cyan-400" />
+          </section>
+
+          <section className="mt-4 grid gap-4 md:grid-cols-4">
+            <MetricCard label="Max Drawdown" value={`${(result.maxDrawdown * 100).toFixed(1)}%`} accent="text-rose-300" />
+            <MetricCard label="Health Score" value={`${result.portfolioHealthScore}/100`} accent="text-emerald-300" />
+            <MetricCard label="Recommended Allocation" value={`${result.recommendedAllocation?.length || 0} assets`} accent="text-cyan-300" />
             <MetricCard label="Budget" value={formatPrice(result.budget)} />
           </section>
 
@@ -364,8 +383,8 @@ export default function PortfolioOptimizationPage() {
                 onClick={() => setActivePortfolio(key)}
                 className={`rounded-md border px-3 py-2 text-sm font-semibold ${
                   activePortfolio === key
-                    ? "border-blue-600 bg-blue-950/40 text-blue-200"
-                    : "border-gray-700 text-gray-400 hover:bg-gray-800"
+                    ? "border-cyan-600 bg-cyan-950/40 text-cyan-200"
+                    : "border-slate-700 text-slate-400 hover:bg-slate-800"
                 }`}
               >
                 {PORTFOLIO_LABELS[key] || key}
@@ -386,11 +405,68 @@ export default function PortfolioOptimizationPage() {
             />
           </section>
 
+          <section className="mt-8 grid gap-6 xl:grid-cols-2">
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/20">
+              <h2 className="mb-3 text-lg font-bold text-white">Performance charts</h2>
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={result.historicalPortfolioGrowth || []}>
+                  <CartesianGrid stroke="#1f2937" />
+                  <XAxis dataKey="month" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="value" stroke="#22c55e" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/20">
+              <h2 className="mb-3 text-lg font-bold text-white">Allocation mix</h2>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={result.barCharts?.[0]?.data || []}>
+                  <CartesianGrid stroke="#1f2937" />
+                  <XAxis dataKey="label" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#38bdf8" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+
+          <section className="mt-8 grid gap-6 xl:grid-cols-2">
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/20">
+              <h2 className="mb-3 text-lg font-bold text-white">Suggested allocation</h2>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={result.pieCharts?.[0]?.segments || []} dataKey="value" nameKey="label" innerRadius={60} outerRadius={90} paddingAngle={2}>
+                    {(result.pieCharts?.[0]?.segments || []).map((entry, index) => (
+                      <Cell key={entry.label} fill={["#38bdf8", "#34d399", "#f59e0b", "#f43f5e", "#a78bfa", "#fb7185"][index % 6]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/20">
+              <h2 className="mb-3 text-lg font-bold text-white">Rebalancing suggestions</h2>
+              <div className="space-y-3">
+                {result.rebalancingSuggestions?.map((item) => (
+                  <div key={item.symbol} className="rounded-2xl border border-slate-800 bg-slate-950/50 p-3 text-sm text-slate-300">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white">{item.symbol}</span>
+                      <span className="text-cyan-300">{item.action}</span>
+                    </div>
+                    <p className="mt-1">Target {item.targetWeight}% vs current {item.currentWeight}% ({item.delta >= 0 ? "+" : ""}{item.delta}%)</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           <section className="mt-8">
             <h2 className="mb-3 text-lg font-bold text-white">Portfolio comparison</h2>
-            <div className="overflow-hidden rounded-lg border border-gray-800">
+            <div className="overflow-hidden rounded-2xl border border-slate-800">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-800 text-gray-300">
+                <thead className="bg-slate-800 text-slate-300">
                   <tr>
                     <th className="px-4 py-3">Strategy</th>
                     <th className="px-4 py-3">Return</th>
@@ -449,7 +525,26 @@ export default function PortfolioOptimizationPage() {
             </div>
           </section>
 
-          <p className="mt-6 text-xs text-gray-500">
+          <section className="mt-8 rounded-3xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/20">
+            <h2 className="mb-3 text-lg font-bold text-white">Risk analysis</h2>
+            <p className="text-sm text-slate-300">{result.riskAnalysis?.exposure || "Balanced exposure"}</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                <p className="text-sm text-slate-400">Volatility</p>
+                <p className="mt-1 text-lg font-semibold text-white">{result.riskAnalysis?.volatility.toFixed(2)}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                <p className="text-sm text-slate-400">Drawdown</p>
+                <p className="mt-1 text-lg font-semibold text-white">{(result.riskAnalysis?.drawdown * 100).toFixed(1)}%</p>
+              </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                <p className="text-sm text-slate-400">Health</p>
+                <p className="mt-1 text-lg font-semibold text-white">{result.portfolioHealthScore}/100</p>
+              </div>
+            </div>
+          </section>
+
+          <p className="mt-6 text-xs text-slate-500">
             {result.method}. {result.sampleDays} overlapping daily returns, annualized over{" "}
             {result.assumptions?.tradingDays} days. Long-only weights.
             {result.cached ? " Cached result." : " Fresh optimization."}{" "}

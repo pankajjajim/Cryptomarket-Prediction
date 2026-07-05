@@ -5,6 +5,7 @@ import {
   getChangeColor,
 } from "../utils/coinFormatting.js";
 import { buildForecastChartData } from "../../../services/forecastChart.js";
+import AiPredictionDashboard from "../components/AiPredictionDashboard.jsx";
 const MODEL_LABELS = {
   lstm: "LSTM",
   xgboost: "XGBoost",
@@ -386,20 +387,20 @@ export default function PricePredictionPage() {
     <main className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">ML Price Prediction</h1>
+          <h1 className="text-2xl font-bold text-white">AI Prediction Dashboard</h1>
           <p className="mt-1 text-sm text-gray-400">
-            Buy / Sell / Hold signals, confidence scores, and increase/decrease probabilities.
+            LSTM, XGBoost, Random Forest, Prophet, and ARIMA forecasts for next hour, day, week, and month.
           </p>
         </div>
         <NavLink
           to="/ai-dashboard"
-          className="w-fit rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-gray-200 hover:bg-gray-800"
+          className="w-fit rounded-md border border-cyan-800 bg-cyan-950/40 px-3 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-900/50"
         >
           AI Dashboard
         </NavLink>
       </div>
 
-      <section className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+      <section className="rounded-3xl border border-cyan-400/20 bg-slate-900/80 p-4 shadow-[0_0_45px_rgba(2,6,23,0.35)] backdrop-blur">
         <div className="grid gap-4 md:grid-cols-4">
           <div className="md:col-span-2">
             <label className="mb-1 block text-sm text-gray-400">Cryptocurrency</label>
@@ -453,6 +454,8 @@ export default function PricePredictionPage() {
 
       {prediction ? (
         <>
+          <AiPredictionDashboard prediction={prediction} />
+
           <SignalHero
             recommendation={prediction.recommendation}
             ensemble={prediction.ensemble}
@@ -536,12 +539,16 @@ export default function PricePredictionPage() {
             </div>
           </section>
 
-          <section className="mt-8">
-            <HistoryChart
-              history={prediction.history}
-              predictedPrice={prediction.ensemble?.predictedPrice}
-              currentPrice={prediction.currentPrice}
-            />
+          <section className="mt-8 rounded-3xl border border-white/10 bg-slate-900/80 p-4 shadow-[0_0_40px_rgba(2,6,23,0.35)] backdrop-blur">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-400">Prediction detail</div>
+                <div className="text-lg font-semibold text-white">Forecast insight</div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-slate-300">
+              {prediction.explanation}
+            </div>
           </section>
 
           <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
