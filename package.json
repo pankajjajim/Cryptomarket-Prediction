@@ -1,8 +1,23 @@
 {
-  "name": "cryptomarket",
+  "name": "c",
   "version": "1.0.0",
-  "description": "",
+  "description": "This project started as a full-stack crypto market web application and was extended into an AI-style system.",
+  "keywords": [],
+  "homepage": "https://github.com/pankajjajim/Cryptomarket-Prediction#readme",
+  "bugs": {
+    "url": "https://github.com/pankajjajim/Cryptomarket-Prediction/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pankajjajim/Cryptomarket-Prediction.git"
+  },
+  "license": "ISC",
+  "author": "pankaj",
+  "type": "commonjs",
   "main": "chart-utils.js",
+  "directories": {
+    "test": "test"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "vite",
@@ -18,10 +33,6 @@
     "ml:predict": "python ml/predict.py --coin-id bitcoin --symbol BTC --days 90",
     "ml:portfolio": "python ml/portfolio_optimize.py --symbols BTC,ETH,SOL,BNB --days 90 --budget 10000"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
